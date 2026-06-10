@@ -3,373 +3,567 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SecureStream P2P | Enterprise Control</title>
+    <title>SecureStream Matrix | Panel de Control P2P</title>
     
-    <!-- Frameworks de Iconos, QR y Conectividad WebRTC Real -->
+    <!-- CDNs de Alta Disponibilidad -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
     <style>
         :root {
-            --bg-main: #060814;
-            --bg-card: #0f1322;
-            --bg-input: #171d33;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, 0.4);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --success: #10b981;
-            --danger: #ef4444;
+            --bg-main: #05050a;
+            --bg-surface: #0a0a14;
+            --bg-element: #121225;
+            --accent: #3b82f6;
+            --accent-success: #10b981;
+            --accent-danger: #ef4444;
+            --accent-warning: #f59e0b;
+            --text-main: #f3f4f6;
+            --text-muted: #6b7280;
             --border: rgba(255, 255, 255, 0.05);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
         body {
             background-color: var(--bg-main);
-            color: var(--text-primary);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
         }
 
-        /* Navbar */
-        nav {
-            background: var(--bg-card);
-            padding: 1.25rem 2rem;
+        header {
+            background: var(--bg-surface);
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
         }
-        .logo { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); }
-        .logo i { color: var(--accent); }
-        .room-badge { background: var(--bg-input); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; font-family: monospace; border: 1px solid var(--border); }
-
-        /* Contenedor de Vistas Dinámicas */
-        .view-section { display: none; flex: 1; padding: 2rem; gap: 2rem; }
-        .view-section.active { display: flex; }
-
-        /* --- VISTA DASHBOARD (RECEPTOR PRINCIPAL) --- */
-        #dashboardView { width: 100%; }
-        .sidebar { width: 340px; background: var(--bg-card); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; border: 1px solid var(--border); height: fit-content; }
-        .qr-wrapper { background: white; padding: 1rem; border-radius: 12px; display: flex; justify-content: center; align-items: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-        .video-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; align-content: start; }
-
-        /* --- VISTA TRANSMISOR (MÓVIL / ESCANER) --- */
-        #transmitterView { flex-direction: column; max-width: 500px; margin: 0 auto; width: 100%; justify-content: center; }
-        .setup-card { background: var(--bg-card); border-radius: 20px; padding: 2rem; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
-        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-        label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        select { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); padding: 0.8rem; border-radius: 10px; outline: none; font-size: 1rem; transition: all 0.3s; }
-        select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .brand { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; letter-spacing: -0.5px; }
+        .brand i { color: var(--accent); }
         
-        .source-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .source-option { background: var(--bg-input); border: 2px solid transparent; border-radius: 12px; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-        .source-option i { font-size: 1.5rem; color: var(--text-secondary); }
-        .source-option.selected { border-color: var(--accent); background: rgba(37, 99, 235, 0.1); }
-        .source-option.selected i { color: var(--accent); }
+        .stats-bar { display: flex; gap: 1rem; align-items: center; }
+        .stat-badge { font-size: 0.8rem; background: var(--bg-element); padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; gap: 0.4rem; }
 
-        .btn-action { background: var(--accent); color: white; border: none; padding: 1rem; border-radius: 10px; font-weight: 700; font-size: 1rem; transition: all 0.3s; width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; box-shadow: 0 4px 14px var(--accent-glow); }
-        .btn-action:hover { background: #1d4ed8; transform: translateY(-2px); }
-        .btn-action:active { transform: translateY(0); }
+        .view { display: none; flex: 1; padding: 1.5rem; gap: 1.5rem; }
+        .view.active { display: flex; }
 
-        /* --- TARJETAS DE VIDEO PROFESIONALES (GRID) --- */
-        .stream-card { background: var(--bg-card); border-radius: 16px; overflow: hidden; position: relative; aspect-ratio: 16/9; border: 1px solid var(--border); box-shadow: 0 15px 35px rgba(0,0,0,0.4); animation: scaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        .stream-card video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+        /* DASHBOARD PRINCIPAL (RECEPTOR) */
+        #hostView { width: 100%; }
+        .sidebar { width: 320px; background: var(--bg-surface); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1.5rem; height: calc(100vh - 100px); position: sticky; top: 15px; }
+        .qr-wrapper { background: #fff; padding: 1rem; border-radius: 12px; display: flex; justify-content: center; align-items: center; }
+        .monitor-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem; align-content: start; overflow-y: auto; }
+
+        /* PANEL TRANSMISOR (MÓVIL) */
+        #clientView { flex-direction: column; max-width: 500px; margin: 0 auto; width: 100%; }
+        .config-card { background: var(--bg-surface); border-radius: 20px; padding: 1.5rem; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1.25rem; }
         
-        .stream-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 1.25rem; background: linear-gradient(transparent, rgba(6, 8, 20, 0.95)); display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
-        .overlay-row { display: flex; justify-content: space-between; align-items: center; }
-        
-        .badge-stack { display: flex; gap: 0.5rem; }
-        .meta-badge { background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(8px); padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; border: 1px solid rgba(255,255,255,0.05); }
-        
-        .ping-indicator { font-family: monospace; font-size: 0.85rem; font-weight: 700; color: var(--success); display: flex; align-items: center; gap: 0.3rem; }
-        .ping-pulse { width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block; }
+        input[type="text"], select { background: var(--bg-element); color: var(--text-main); border: 1px solid var(--border); padding: 0.8rem; border-radius: 8px; font-size: 0.95rem; width: 100%; outline: none; transition: border 0.2s; }
+        input[type="text"]:focus, select:focus { border-color: var(--accent); }
 
-        /* Animaciones */
-        @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .selector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .mode-button { background: var(--bg-element); border: 2px solid transparent; padding: 1rem; border-radius: 10px; text-align: center; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .mode-button i { font-size: 1.5rem; color: var(--text-muted); }
+        .mode-button.active { border-color: var(--accent); background: rgba(59, 130, 246, 0.05); }
+        .mode-button.active i { color: var(--accent); }
 
-        /* Diseño Adaptable (Responsive) */
-        @media (max-width: 850px) {
-            nav { padding: 1rem; }
-            .view-section { flex-direction: column; padding: 1rem; }
-            .sidebar { width: 100%; }
-            .video-grid { grid-template-columns: 1fr; }
+        .preview-box { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); position: relative; display: none; }
+        .preview-box video { width: 100%; height: 100%; object-fit: cover; }
+        .preview-box.mirror video { transform: scaleX(-1); }
+
+        .btn { background: var(--accent); color: #fff; border: none; padding: 1rem; border-radius: 10px; font-size: 1rem; font-weight: 700; width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; cursor: pointer; transition: background 0.2s; }
+        .btn:hover { background: #2563eb; }
+        .btn:disabled { background: var(--text-muted); opacity: 0.4; cursor: not-allowed; }
+        .btn-danger { background: var(--accent-danger); }
+        .btn-danger:hover { background: #dc2626; }
+
+        /* TARJETAS DE TRANSMISIÓN REMOTA (TILES) */
+        .tile { background: var(--bg-surface); border-radius: 14px; overflow: hidden; position: relative; aspect-ratio: 16/9; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .tile video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+        .tile.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999; aspect-ratio: auto; border-radius: 0; }
+
+        .tile-controls { position: absolute; top: 0; left: 0; right: 0; padding: 0.75rem; display: flex; justify-content: space-between; background: linear-gradient(rgba(0,0,0,0.8), transparent); z-index: 10; opacity: 0.4; transition: opacity 0.2s; }
+        .tile:hover .tile-controls { opacity: 1; }
+        .control-group { display: flex; gap: 0.4rem; }
+        
+        .action-badge { background: rgba(10, 10, 20, 0.8); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.08); padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; color: #fff; }
+        .action-badge:hover { background: var(--bg-element); }
+        .action-badge.danger { background: rgba(239, 68, 68, 0.2); border-color: var(--accent-danger); color: #fca5a5; }
+        .action-badge.danger:hover { background: var(--accent-danger); color: #fff; }
+
+        .tile-meta { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem; background: linear-gradient(transparent, rgba(0,0,0,0.9)); z-index: 9; pointer-events: none; }
+        .user-identity { font-size: 0.95rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 0.4rem; }
+        .device-string { font-size: 0.75rem; color: #d1d5db; display: flex; gap: 0.5rem; margin-top: 0.25rem; }
+
+        .terminal { flex: 1; background: #020205; border-radius: 8px; border: 1px solid var(--border); font-family: monospace; font-size: 0.7rem; padding: 0.75rem; overflow-y: auto; max-height: 160px; display: flex; flex-direction: column; gap: 0.25rem; }
+        .log { display: flex; gap: 0.4rem; }
+        .log.err { color: var(--accent-danger); }
+        .log.succ { color: var(--accent-success); }
+
+        @media (max-width: 900px) {
+            .view { flex-direction: column; padding: 0.75rem; }
+            .sidebar { width: 100%; height: auto; position: relative; top: 0; }
+            .monitor-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-    <!-- MENÚ SUPERIOR -->
-    <nav>
-        <div class="logo">
-            <i class="fa-solid fa-circle-nodes"></i> SecureStream <span style="font-weight:300; opacity:0.7;">P2P</span>
+    <header>
+        <div class="brand"><i class="fa-solid fa-layer-group"></i> STREAM MATRIX CONTROL</div>
+        <div class="stats-bar">
+            <div class="stat-badge" id="netStatus"><i class="fa-solid fa-circle-notch fa-spin"></i> ENLAZANDO...</div>
+            <div class="stat-badge" id="activeCounter" style="display:none;"><i class="fa-solid fa-video"></i> Nodos: 0</div>
         </div>
-        <div class="room-badge" id="roomDisplay">SALA: Generando...</div>
-    </nav>
+    </header>
 
-    <!-- VISTA 1: DASHBOARD DE LA COMPUTADORA (SALA PRINCIPAL) -->
-    <section class="view-section" id="dashboardView">
+    <!-- DASHBOARD CENTRAL DE MONITOREO (RECEPTOR) -->
+    <main class="view" id="hostView">
         <aside class="sidebar">
-            <div style="text-align: center;">
-                <h3 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-qrcode"></i> Escanear para Emitir</h3>
-                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">Cualquier dispositivo que escanee este código transmitirá su cámara o pantalla directamente aquí.</p>
+            <div>
+                <h3 style="font-size: 1rem; margin-bottom: 0.25rem;"><i class="fa-solid fa-expand"></i> Código de Acceso</h3>
+                <p style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 0.75rem;">Escanea para agregar una cámara o pantalla al mosaico.</p>
+                <div class="qr-wrapper" id="qrcode"></div>
             </div>
-            <div class="qr-wrapper" id="qrcode"></div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; border-top: 1px solid var(--border); padding-top: 1rem; margin-top: auto;">
-                <i class="fa-solid fa-shield-halved" style="color: var(--success)"></i> Canal Directo WebRTC Cifrado E2EE
+            
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: auto;">
+                <h4 style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Actividad de Servidor</h4>
+                <div class="terminal" id="hostTerminal"></div>
             </div>
         </aside>
 
-        <!-- Cuadrícula Responsiva de Videos Remotos -->
-        <div class="video-grid" id="videoGrid">
-            <!-- Aquí irán apareciendo los dispositivos alineados uno al lado del otro -->
+        <div class="monitor-grid" id="monitorGrid">
+            <!-- Los módulos de video remotos aparecerán dinámicamente aquí -->
         </div>
-    </section>
+    </main>
 
-    <!-- VISTA 2: INTERFAZ DEL DISPOSITIVO REMOTO (MÓVIL / ESCANER) -->
-    <section class="view-section" id="transmitterView">
-        <div class="setup-card">
-            <div style="text-align:center;">
-                <h2 style="margin-bottom:0.3rem;"><i class="fa-solid fa-tower-broadcast" style="color:var(--accent)"></i> Transmisión Externa</h2>
-                <p style="color:var(--text-secondary); font-size:0.9rem;">Configura tu fuente de captura profesional</p>
+    <!-- PANEL DE CONFIGURACIÓN DEL TRANSMISOR (MÓVIL) -->
+    <main class="view" id="clientView">
+        <div class="config-card">
+            <div style="text-align: center;">
+                <h2 style="font-weight: 800; font-size: 1.4rem;">Transmitir a Matriz</h2>
+                <p style="color: var(--text-muted); font-size: 0.8rem;">Configura tu salida multimedia</p>
             </div>
 
-            <!-- Selector de Tipo de Fuente -->
-            <div class="form-group">
-                <label>Tipo de Fuente</label>
-                <div class="source-selector">
-                    <div class="source-option selected" id="sourceCam" onclick="setSourceType('camera')">
+            <!-- Identificación Personal -->
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">TU NOMBRE / ALIAS</label>
+                <input type="text" id="clientNickname" placeholder="Ej. Operador Cámara 1" value="Cámara Remota">
+            </div>
+
+            <!-- Modo de Captura -->
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">ORIGEN DE SEÑAL</label>
+                <div class="selector-grid">
+                    <div class="mode-button active" id="modeCam" onclick="setMode('camera')">
                         <i class="fa-solid fa-camera"></i>
                         <span>Cámara</span>
                     </div>
-                    <div class="source-option" id="sourceScreen" onclick="setSourceType('screen')">
+                    <div class="mode-button" id="modeScreen" onclick="setMode('screen')">
                         <i class="fa-solid fa-display"></i>
                         <span>Pantalla</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Selector de Hardware Dinámico (Cámaras Frontal/Trasera) -->
-            <div class="form-group" id="cameraHardwareGroup">
-                <label><i class="fa-solid fa-microchip"></i> Seleccionar Cámara disponible</label>
-                <select id="videoDeviceSelect">
-                    <option value="">Detectando ópticas...</option>
+            <!-- Ajustes de Calidad Dinámica -->
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">RESOLUCIÓN Y CONSUMO</label>
+                <select id="videoQuality">
+                    <option value="720">Alta Definición (720p - Recomendado)</option>
+                    <option value="1080">Full HD (1080p - Alta velocidad requerida)</option>
+                    <option value="480">Modo Ahorro / Datos Móviles (480p)</option>
                 </select>
             </div>
 
-            <button class="btn-action" id="btnLaunch" onclick="startTransmission()">
-                <i class="fa-solid fa-play"></i> Iniciar Retransmisión
-            </button>
+            <!-- Hardware Óptico -->
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;" id="hardwareContainer">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">SELECCIONAR DISPOSITIVO</label>
+                <select id="cameraSelect"><option>Cargando lentes...</option></select>
+                <div style="display:flex; gap:0.5rem; margin-top:0.25rem;">
+                    <label style="font-size:0.8rem; display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                        <input type="checkbox" id="chkMirror" onchange="applyMirrorEffect()"> Efecto Espejo
+                    </label>
+                </div>
+            </div>
+
+            <!-- Monitor Local -->
+            <div class="preview-box" id="localPreviewBox">
+                <video id="localPreviewVideo" autoplay playsinline muted></video>
+            </div>
+
+            <button class="btn" id="btnAction" onclick="startTransmission()"><i class="fa-solid fa-paper-plane"></i> ENLAZAR EN VIVO</button>
+
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">Consola de Estado</label>
+                <div class="terminal" id="clientTerminal"></div>
+            </div>
         </div>
-    </section>
+    </main>
 
     <script>
-        // --- ORQUESTACIÓN DE CONFIGURACIÓN Y ROLES ---
         let roomId = "";
         let peer = null;
-        let selectedSourceType = "camera"; // 'camera' o 'screen'
-        let localStream = null;
+        let activeStream = null;
+        let captureMode = "camera";
+        let liveCalls = {}; // Control de llamadas del lado del receptor
 
-        // Detector de Sistema Operativo y Dispositivo Real
-        function getDeviceMetadata() {
+        // Infraestructura STUN de Google para saltar firewalls de datos móviles
+        const connectionConfig = {
+            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
+        };
+
+        // --- EXTRACCIÓN AVANZADA DE HARDWARE Y MARCA COMERCIAL ---
+        function parseDetailedDevice() {
             const ua = navigator.userAgent;
-            let os = "Linux";
-            let device = "Desktop";
+            let brand = "Dispositivo Desconocido";
+            let os = "WebOS";
 
-            if (ua.includes("Win")) os = "Windows";
-            else if (ua.includes("Mac")) os = "MacOS";
-            else if (ua.includes("Android")) { os = "Android"; device = "Móvil"; }
-            else if (ua.includes("like Mac")) { os = "iOS"; device = "Móvil"; }
-            
-            if(/Mobi|Tablet|iPad/i.test(ua)) device = "Móvil/Tablet";
+            // Detección de Sistemas Operativos
+            if (/android/i.test(ua)) os = "Android";
+            else if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
+            else if (/Windows/i.test(ua)) os = "Windows";
+            else if (/Macintosh/i.test(ua)) os = "MacOS";
 
-            return { os, device };
+            // Extracción de marcas conocidas mediante firma de User-Agent
+            if (/Samsung|SM-|GT-/i.test(ua)) brand = "Samsung";
+            else if (/Xiaomi|Redmi|POCO/i.test(ua)) brand = "Xiaomi";
+            else if (/Huawei|Honor/i.test(ua)) brand = "Huawei";
+            else if (/Pixel/i.test(ua)) brand = "Google Pixel";
+            else if (/Motorola|Moto/i.test(ua)) brand = "Motorola";
+            else if (/iPhone/i.test(ua)) brand = "iPhone";
+            else if (/iPad/i.test(ua)) brand = "iPad";
+            else if (/Macintosh/i.test(ua)) brand = "MacBook/iMac";
+            else {
+                // Intenta aislar el modelo que se encuentra entre paréntesis en Android
+                const match = ua.match(/\(([^)]+)\)/);
+                if (match && match[1]) {
+                    const parts = match[1].split(';');
+                    if (parts.length > 2) brand = parts[2].trim();
+                }
+            }
+            if(brand === "Dispositivo Desconocido" && os !== "WebOS") brand = os + " PC";
+
+            return { brand, os };
         }
 
-        // Inicialización de la App
+        function logTrace(panelId, msg, type = 'info') {
+            const el = document.getElementById(panelId);
+            if (!el) return;
+            const line = document.createElement('div');
+            line.className = `log ${type}`;
+            line.innerHTML = `<span>[${new Date().toLocaleTimeString()}]</span> <span>${msg}</span>`;
+            el.appendChild(line);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        // --- SISTEMA DE INICIALIZACIÓN ---
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const urlRoom = urlParams.get('room');
-            const isClient = urlParams.has('role');
+            const roomParam = urlParams.get('room');
+            const roleParam = urlParams.get('role');
 
-            if (urlRoom) {
-                roomId = urlRoom;
+            if (roomParam) {
+                roomId = roomParam;
             } else {
-                // Si eres la pantalla principal, creas un ID de sala único
-                roomId = "room-" + Math.random().toString(36).substring(2, 9);
-                const newUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
-                window.history.replaceState({}, '', newUrl);
+                roomId = "mtx-" + Math.random().toString(36).substring(2, 10);
+                window.history.replaceState({}, '', `${window.location.origin}${window.location.pathname}?room=${roomId}`);
             }
 
-            document.getElementById('roomDisplay').innerText = `SALA: ${roomId.toUpperCase()}`;
-
-            if (isClient) {
-                // Modo Transmisor (El teléfono que escaneó el QR)
-                document.getElementById('transmitterView').classList.add('active');
-                initPeerConnection(false);
-                await loadHardwareDevices();
+            if (roleParam === 'transmitter') {
+                document.getElementById('clientView').classList.add('active');
+                logTrace('clientTerminal', "Iniciando nodo de transmisión...", 'info');
+                initPeerNetwork(false);
+                await scanOptics();
             } else {
-                // Modo Servidor/Dashboard (La computadora que muestra el QR)
-                document.getElementById('dashboardView').classList.add('active');
+                document.getElementById('hostView').classList.add('active');
+                document.getElementById('activeCounter').style.display = 'block';
+                logTrace('hostTerminal', "Consola maestra lista para recibir flujos.", 'info');
                 generateQR();
-                initPeerConnection(true);
+                initPeerNetwork(true);
             }
         });
 
-        // Generador de QR dinámico apuntando explícitamente al rol cliente
         function generateQR() {
-            const clientUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}&role=client`;
-            new QRCode(document.getElementById("qrcode"), {
-                text: clientUrl,
-                width: 220,
-                height: 220,
-                colorDark : "#060814",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
+            const path = `${window.location.origin}${window.location.pathname}?room=${roomId}&role=transmitter`;
+            new QRCode(document.getElementById("qrcode"), { text: path, width: 200, height: 200, colorDark: "#05050a" });
         }
 
-        // --- ENUMERACIÓN DE HARDWARE REAL ---
-        async function loadHardwareDevices() {
+        function setMode(mode) {
+            captureMode = mode;
+            document.getElementById('modeCam').classList.toggle('active', mode === 'camera');
+            document.getElementById('modeScreen').classList.toggle('active', mode === 'screen');
+            document.getElementById('hardwareContainer').style.display = mode === 'camera' ? 'flex' : 'none';
+        }
+
+        function applyMirrorEffect() {
+            const isChecked = document.getElementById('chkMirror').checked;
+            document.getElementById('localPreviewBox').classList.toggle('mirror', isChecked);
+        }
+
+        async function scanOptics() {
+            const select = document.getElementById('cameraSelect');
             try {
-                // Solicitar un permiso rápido para activar el hardware y leer las etiquetas reales
-                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true }).catch(()=>{});
-                if(tempStream) tempStream.getTracks().forEach(track => track.stop());
+                // Solicitar un stream rápido para romper el bloqueo de nombres de dispositivos
+                const temp = await navigator.mediaDevices.getUserMedia({ video: true }).catch(() => null);
+                if (temp) temp.getTracks().forEach(t => t.stop());
 
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const select = document.getElementById('videoDeviceSelect');
                 select.innerHTML = "";
-
-                let videoInputs = devices.filter(d => d.kind === 'videoinput');
-                
-                videoInputs.forEach((device, index) => {
-                    const option = document.createElement('option');
-                    option.value = device.deviceId;
-                    // Nombrar lógicamente si el navegador no expone etiquetas claras
-                    option.text = device.label || `Cámara Óptica ${index + 1}`;
-                    select.appendChild(option);
-                });
+                const videoInputs = devices.filter(d => d.kind === 'videoinput');
 
                 if(videoInputs.length === 0) {
-                    select.innerHTML = "<option value=''>No se encontraron cámaras</option>";
+                    select.innerHTML = "<option>Permiso denegado o sin cámara</option>";
+                    return;
                 }
+
+                videoInputs.forEach((d, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = d.deviceId;
+                    opt.text = d.label || `Lente Óptico ${idx + 1}`;
+                    select.appendChild(opt);
+                });
+                logTrace('clientTerminal', "Ópticas indexadas con éxito.", 'succ');
             } catch (e) {
-                console.error("Error cargando hardware: ", e);
+                logTrace('clientTerminal', "Fallo al leer componentes ópticos.", 'err');
             }
         }
 
-        function setSourceType(type) {
-            selectedSourceType = type;
-            document.getElementById('sourceCam').classList.toggle('selected', type === 'camera');
-            document.getElementById('sourceScreen').classList.toggle('selected', type === 'screen');
-            document.getElementById('cameraHardwareGroup').style.display = type === 'camera' ? 'flex' : 'none';
-        }
-
-        // --- CONEXIÓN CORE WEBRTC (PEERJS) ---
-        function initPeerConnection(isHost) {
-            // Inicializar usando la red global de PeerJS cloud
-            const peerId = isHost ? `${roomId}-host` : `${roomId}-client-${Math.random().toString(36).substring(2,6)}`;
-            peer = new Peer(peerId);
+        // --- INSTANCIACIÓN DE RED INALÁMBRICA PEERJS ---
+        function initPeerNetwork(isHost) {
+            const identityId = isHost ? `${roomId}-hub` : `${roomId}-node-${Math.random().toString(36).substring(2,6)}`;
+            peer = new Peer(identityId, connectionConfig);
 
             peer.on('open', (id) => {
-                console.log('Conectado al servidor de señalización con ID:', id);
+                document.getElementById('netStatus').innerHTML = `<i class="fa-solid fa-circle" style="color:var(--accent-success);"></i> EN LÍNEA`;
+                logTrace(isHost ? 'hostTerminal' : 'clientTerminal', `Canal abierto. ID Red: ${id}`, 'succ');
+            });
+
+            peer.on('error', (err) => {
+                logTrace(isHost ? 'hostTerminal' : 'clientTerminal', `Fallo de conexión: ${err.type}`, 'err');
             });
 
             if (isHost) {
-                // El Dashboard escucha las llamadas entrantes de los móviles
+                // Capturar llamadas entrantes en la sala central
                 peer.on('call', (call) => {
-                    call.answer(); // Responder sin enviar video de vuelta (solo recibir)
+                    logTrace('hostTerminal', `Conexión entrante desde nodo: ${call.peer}`, 'info');
+                    call.answer(); // Responder llamada sin enviar video de vuelta
+
                     call.on('stream', (remoteStream) => {
-                        // Extraer metadatos enviados por el cliente
-                        const meta = call.metadata || { os: 'Remoto', device: 'Dispositivo' };
-                        injectVideoCard(call.peer, remoteStream, meta);
+                        // Guardar referencia de la llamada para poder destruirla cuando el Host quiera
+                        liveCalls[call.peer] = call;
+                        injectVideoTile(call.peer, remoteStream, call.metadata);
+                        updateOnlineCounter();
+                    });
+
+                    call.on('close', () => {
+                        removeVideoTile(call.peer);
                     });
                 });
             }
         }
 
-        // --- TRANSMISIÓN ACTIVA DESDE EL MÓVIL ---
+        // --- TRANSMISIÓN ACTIVA DESDE DISPOSITIVO MÓVIL ---
         async function startTransmission() {
-            const btn = document.getElementById('btnLaunch');
-            btn.innerText = "Conectando...";
+            const btn = document.getElementById('btnAction');
+            if (activeStream) {
+                // Si ya está transmitiendo, el botón actúa como desconectar
+                location.reload();
+                return;
+            }
+
             btn.disabled = true;
+            btn.innerText = "Configurando hardware...";
 
             try {
-                if (selectedSourceType === "camera") {
-                    const deviceId = document.getElementById('videoDeviceSelect').value;
-                    const videoConstraints = deviceId ? { deviceId: { exact: deviceId } } : true;
-                    localStream = await navigator.mediaDevices.getUserMedia({
-                        video: videoConstraints,
-                        audio: true
+                const nick = document.getElementById('clientNickname').value.trim() || "Cámara Anónima";
+                const targetQuality = document.getElementById('videoQuality').value;
+                
+                let heightTarget = 720;
+                let widthTarget = 1280;
+                if (targetQuality === "1080") { widthTarget = 1920; heightTarget = 1080; }
+                if (targetQuality === "480") { widthTarget = 854; heightTarget = 480; }
+
+                if (captureMode === "camera") {
+                    const lensId = document.getElementById('cameraSelect').value;
+                    activeStream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: lensId ? { exact: lensId } : undefined, width: { ideal: widthTarget }, height: { ideal: heightTarget } },
+                        audio: { echoCancellation: true }
                     });
                 } else {
-                    localStream = await navigator.mediaDevices.getDisplayMedia({
-                        video: true,
-                        audio: true
-                    });
+                    activeStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
                 }
 
-                // Llamar al host de la sala pasando el flujo multimedia y metadatos reales del equipo
-                const metadata = getDeviceMetadata();
-                const call = peer.call(`${roomId}-host`, localStream, { metadata: metadata });
+                // Mostrar previsualización en el teléfono
+                const pBox = document.getElementById('localPreviewBox');
+                const pVideo = document.getElementById('localPreviewVideo');
+                pBox.style.display = "block";
+                pVideo.srcObject = activeStream;
 
-                if(call) {
-                    btn.innerHTML = "<i class='fa-solid fa-circle-check'></i> Emitiendo en Vivo";
-                    btn.style.backgroundColor = "var(--success)";
-                    // Si el usuario corta la captura de pantalla desde el sistema nativo
-                    localStream.getVideoTracks()[0].onended = () => location.reload();
-                }
+                const hwInfo = parseDetailedDevice();
+                const metadataPayload = {
+                    nickname: nick,
+                    device: hwInfo.brand,
+                    os: hwInfo.os,
+                    mirror: document.getElementById('chkMirror').checked
+                };
+
+                logTrace('clientTerminal', "Señal capturada. Transmitiendo...", 'info');
+                
+                // Llamar al Hub Central enviando los metadatos extendidos del dispositivo
+                const call = peer.call(`${roomId}-hub`, activeStream, { metadata: metadataPayload });
+                
+                // Escuchar si el Host decide colgarnos/cerrarnos la pantalla
+                call.on('close', () => {
+                    logTrace('clientTerminal', "La consola central ha revocado tu transmisión.", 'err');
+                    if (activeStream) activeStream.getTracks().forEach(t => t.stop());
+                    document.getElementById('localPreviewBox').style.display = "none";
+                    btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> EXPULSADO / RECONECTAR`;
+                    btn.className = "btn btn-danger";
+                    btn.disabled = false;
+                    btn.onclick = () => location.reload();
+                });
+
+                btn.innerHTML = `<i class="fa-solid fa-stop"></i> DETENER TRANSMISIÓN`;
+                btn.style.backgroundColor = "var(--accent-danger)";
+                btn.disabled = false;
 
             } catch (err) {
-                console.error(err);
-                alert("Error de Acceso: Verifica los permisos de hardware o que te encuentres bajo un entorno seguro HTTPS.");
-                btn.innerText = "Iniciar Retransmisión";
+                logTrace('clientTerminal', `Error al acceder a los medios: ${err.message}`, 'err');
                 btn.disabled = false;
+                btn.innerText = "ENLAZAR EN VIVO";
             }
         }
 
-        // --- INYECCIÓN DE ELEMENTOS EN EL GRID DEL HOST ---
-        function injectVideoCard(peerId, stream, meta) {
-            // Evitar duplicaciones de tarjetas para el mismo dispositivo
-            if (document.getElementById(`card-${peerId}`)) return;
+        // --- CONTROLADOR DE MOSAICO (HOST / DASHBOARD) ---
+        function injectVideoTile(nodeId, stream, meta) {
+            // Limpiar si el ID ya existe en pantalla
+            const existing = document.getElementById(`tile-${nodeId}`);
+            if (existing) existing.remove();
 
-            const grid = document.getElementById('videoGrid');
-            const card = document.createElement('div');
-            card.className = 'stream-card';
-            card.id = `card-${peerId}`;
+            const grid = document.getElementById('monitorGrid');
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.id = `tile-${nodeId}`;
 
-            card.innerHTML = `
-                <video id="video-${peerId}" autoplay playsinline></video>
-                <div class="stream-overlay">
-                    <div class="overlay-row">
-                        <div class="badge-stack">
-                            <span class="meta-badge"><i class="fa-solid fa-laptop-code"></i> ${meta.device}</span>
-                            <span class="meta-badge"><i class="fa-solid fa-microchip"></i> ${meta.os}</span>
-                        </div>
-                        <div class="ping-indicator">
-                            <span class="ping-pulse"></span> <span id="ping-${peerId}">Mediendo...</span>
-                        </div>
+            const name = meta?.nickname || "Transmisión Externa";
+            const deviceName = meta?.device || "Marca Genérica";
+            const osSystem = meta?.os || "Sistema Desconocido";
+            const needsMirror = meta?.mirror ? 'style="transform: scaleX(-1);"' : '';
+
+            tile.innerHTML = `
+                <div class="tile-controls">
+                    <div class="control-group">
+                        <span class="action-badge" onclick="toggleAudio('${nodeId}')" id="vol-${nodeId}"><i class="fa-solid fa-volume-xmark"></i></span>
+                        <span class="action-badge" onclick="takeSnapshot('${nodeId}', '${name}')"><i class="fa-solid fa-camera"></i> Foto</span>
+                        <span class="action-badge" onclick="toggleMaximize('${nodeId}')"><i class="fa-solid fa-expand"></i></span>
+                    </div>
+                    <div class="control-group">
+                        <span class="action-badge danger" onclick="kickNode('${nodeId}')"><i class="fa-solid fa-rectangle-xmark"></i> Cerrar</span>
+                    </div>
+                </div>
+                <video id="vid-${nodeId}" autoplay playsinline muted ${needsMirror}></video>
+                <div class="tile-meta">
+                    <div class="user-identity"><i class="fa-solid fa-circle" style="color:var(--accent-success); font-size:0.6rem; animation: pulseGlow 1s infinite;"></i> ${name}</div>
+                    <div class="device-string">
+                        <span><i class="fa-solid fa-mobile-screen-button"></i> ${deviceName}</span>
+                        <span><i class="fa-solid fa-gears"></i> ${osSystem}</span>
                     </div>
                 </div>
             `;
 
-            grid.appendChild(card);
-            const videoElement = document.getElementById(`video-${peerId}`);
-            videoElement.srcObject = stream;
+            grid.appendChild(tile);
+            const videoTag = document.getElementById(`vid-${nodeId}`);
+            videoTag.srcObject = stream;
+            videoTag.play().catch(() => {});
+        }
 
-            // Medición en tiempo real del Ping de la transmisión mediante analíticas WebRTC reales (RTCPeerConnection)
-            setInterval(async () => {
-                const pingText = document.getElementById(`ping-${peerId}`);
-                if (!pingText) return;
+        // --- MULTI-HERRAMIENTAS INYECTADAS (MUCHAS COSAS MÁS) ---
 
-                // Simulación estadística basada en delay del buffer de cuadros para estimar latencia de red
-                const simulatedPing = Math.floor(Math.random() * 18) + 9; 
-                pingText.innerText = `${simulatedPing} ms`;
-            }, 2000);
+        // 1. CERRAR / EXPULSAR PANTALLA INDIVIDUAL
+        function kickNode(nodeId) {
+            if (confirm("¿Estás seguro de que quieres cerrar y revocar esta transmisión?")) {
+                logTrace('hostTerminal', `Cerrando de forma remota el nodo: ${nodeId}`, 'warn');
+                if (liveCalls[nodeId]) {
+                    liveCalls[nodeId].close(); // Esto dispara automáticamente la destrucción en el teléfono del cliente
+                    delete liveCalls[nodeId];
+                }
+                removeVideoTile(nodeId);
+            }
+        }
+
+        function removeVideoTile(nodeId) {
+            const targetTile = document.getElementById(`tile-${nodeId}`);
+            if (targetTile) {
+                targetTile.remove();
+                logTrace('hostTerminal', `Módulo de video desvinculado de pantalla: ${nodeId}`, 'info');
+                updateOnlineCounter();
+            }
+        }
+
+        // 2. CAPTURADOR DE PANTALLA (SNAPSHOT) EN CALIENTE
+        function takeSnapshot(nodeId, operatorName) {
+            const video = document.getElementById(`vid-${nodeId}`);
+            if (!video) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            
+            const ctx = canvas.getContext('2d');
+            // Si el cliente usa espejo, simularlo en la captura de foto
+            const tileElement = document.getElementById(`tile-${nodeId}`);
+            const hasMirror = video.style.transform.includes('scaleX(-1)');
+
+            if (hasMirror) {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+            }
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Forzar descarga de archivo de imagen PNG
+            const link = document.createElement('a');
+            link.download = `Captura_${operatorName.replace(/\s+/g, '_')}_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            logTrace('hostTerminal', `Captura de pantalla guardada para: ${operatorName}`, 'succ');
+        }
+
+        // 3. MAXIMIZAR / MODO CINE INDIVIDUAL
+        function toggleMaximize(nodeId) {
+            const tile = document.getElementById(`tile-${nodeId}`);
+            if (tile) {
+                tile.classList.toggle('fullscreen');
+                if (tile.classList.contains('fullscreen')) {
+                    logTrace('hostTerminal', `Modo foco activo sobre nodo: ${nodeId}`, 'info');
+                }
+            }
+        }
+
+        // 4. CONTROLADOR INDEPENDIENTE DE AUDIO (MUTEAR/DESMUTEAR)
+        function toggleAudio(nodeId) {
+            const video = document.getElementById(`vid-${nodeId}`);
+            const btn = document.getElementById(`vol-${nodeId}`);
+            if (!video || !btn) return;
+
+            if (video.muted) {
+                video.muted = false;
+                btn.innerHTML = `<i class="fa-solid fa-volume-high"></i> Silenciar`;
+                btn.style.backgroundColor = "var(--accent-success)";
+            } else {
+                video.muted = true;
+                btn.innerHTML = `<i class="fa-solid fa-volume-xmark"></i>`;
+                btn.style.backgroundColor = "rgba(10, 10, 20, 0.8)";
+            }
+        }
+
+        function updateOnlineCounter() {
+            const count = document.getElementById('monitorGrid').children.length;
+            document.getElementById('activeCounter').innerHTML = `<i class="fa-solid fa-video"></i> Nodos: ${count}`;
         }
     </script>
 </body>
